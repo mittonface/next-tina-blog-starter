@@ -13,7 +13,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, usePlugin } from "tinacms";
 import { fetchGraphql } from "../../lib/api";
 
-export default function Post({ post: initialPost, morePosts, preview }) {
+export default function Post({ post: initialPost, preview }) {
   const router = useRouter();
   if (!router.isFallback && !initialPost?.slug) {
     return <ErrorPage statusCode={404} />;
@@ -76,7 +76,7 @@ export default function Post({ post: initialPost, morePosts, preview }) {
             <article className="mb-32">
               <Head>
                 <title>
-                  {post.title} | Next.js Blog Example with {CMS_NAME}
+                  {post.title} {preview}| Next.js Blog Example with {CMS_NAME}
                 </title>
                 <meta
                   property="og:image"
@@ -104,7 +104,7 @@ export default function Post({ post: initialPost, morePosts, preview }) {
   );
 }
 
-export async function getStaticProps({ params }) {
+export async function getStaticProps({ params, preview, previewData }) {
   const queryResponse = await fetchGraphql(`
   query {
     blogPosts(where: {slug: "${params.slug}"}) {
@@ -126,6 +126,20 @@ export async function getStaticProps({ params }) {
 
   const post = queryResponse.data.blogPosts[0];
   const content = await markdownToHtml(post.content || "");
+
+  if (preview) {
+    return {
+      props: {
+        ...previewData,
+        preview,
+        post: {
+          ...post,
+          content,
+          rawMarkdownBody: post.content,
+        },
+      },
+    };
+  }
 
   return {
     props: {
