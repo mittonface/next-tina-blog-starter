@@ -9,16 +9,19 @@ function MyApp({ Component, pageProps }) {
     apis: {
       strapi: new TinaStrapiClient(),
     },
+    sidebar: {
+      hidden: !pageProps.preview,
+    },
   });
 
   return (
     <TinaProvider cms={cms}>
       <StrapiProvider
-        editMode={true}
+        editMode={pageProps.preview}
         enterEditMode={enterEditMode}
         exitEditMode={exitEditMode}
       >
-        <EditLink editMode={true} />
+        <EditLink editMode={pageProps.preview} />
         <Component {...pageProps} />
       </StrapiProvider>
     </TinaProvider>
