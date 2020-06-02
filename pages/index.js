@@ -35,7 +35,7 @@ export default function Index({ allPosts }) {
   );
 }
 
-export async function getStaticProps() {
+export async function getStaticProps({ preview, previewData }) {
   const queryResponse = await fetchGraphql(`
   query {
     blogPosts {
@@ -55,7 +55,16 @@ export async function getStaticProps() {
 
   const allPosts = queryResponse.data.blogPosts;
 
+  if (preview) {
+    return {
+      props: {
+        allPosts,
+        preview,
+        ...previewData,
+      },
+    };
+  }
   return {
-    props: { allPosts },
+    props: { allPosts, preview: false },
   };
 }
