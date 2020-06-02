@@ -23,8 +23,23 @@ export default function Post({ post: initialPost, morePosts, preview }) {
     id: initialPost.slug,
     label: "Blog Post",
     initialValues: initialPost,
-    onSubmit: (values) => {
-      alert(`Submitting ${values.title}`);
+    onSubmit: async (values) => {
+      const saveMutation = `
+      mutation {
+        updateBlogPost(
+          input: {
+            where: { id: ${values.id} }
+            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""" }
+          }
+        ) {
+          blogPost {
+            id
+          }
+        }
+      }
+      `;
+
+      const response = await fetchGraphql(saveMutation);
     },
     fields: [
       {
