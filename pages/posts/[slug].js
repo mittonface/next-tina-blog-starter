@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, usePlugin } from "tinacms";
 import { fetchGraphql } from "../../lib/api";
 import { STRAPI_URL } from "../../components/tina-strapi/tina-strapi-client";
+import get from "lodash.get";
 
 export default function Post({ post: initialPost, preview }) {
   const router = useRouter();
@@ -29,8 +30,8 @@ export default function Post({ post: initialPost, preview }) {
       mutation {
         updateBlogPost(
           input: {
-            where: { id: ${values.id} }
-            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""", date:"${values.date}" }
+            where: { id: ${values.id} },
+            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""", date:"${values.date}", coverImage: "${values.coverImage.id}"}
           }
         ) {
           blogPost {
@@ -57,14 +58,21 @@ export default function Post({ post: initialPost, preview }) {
         },
       },
       {
-        name: "coverImage.url",
+        name: "coverImage",
         label: "Cover Image",
         component: "image",
-        previewSrc: () => {
-          return STRAPI_URL + post.coverImage.url;
+        previewSrc: (formValues, { input }) => {
+          return STRAPI_URL + get(formValues, input.name + ".url");
         },
         uploadDir: () => {
-          return "/uploads";
+          return `/uploads/`;
+        },
+        parse: (filename) => {
+          const filenameParts = filename.split("?");
+          return { url: `/uploads/${filenameParts[0]}`, id: filenameParts[1] };
+        },
+        format: (coverImage) => {
+          return coverImage.url;
         },
       },
       {
@@ -101,18 +109,12 @@ export default function Post({ post: initialPost, preview }) {
                 </title>
                 <meta
                   property="og:image"
-                  content={
-                    `http://ec2-3-80-4-78.compute-1.amazonaws.com:1337` +
-                    post.coverImage.url
-                  }
+                  content={STRAPI_URL + post.coverImage.url}
                 />
               </Head>
               <PostHeader
                 title={post.title}
-                coverImage={
-                  `http://ec2-3-80-4-78.compute-1.amazonaws.com:1337` +
-                  post.coverImage.url
-                }
+                coverImage={STRAPI_URL + post.coverImage.url}
                 date={post.date}
                 author={post.author}
               />
@@ -133,6 +135,7 @@ export async function getStaticProps({ params, preview, previewData }) {
       id
       title
       coverImage{
+        id
         url
       }
       date
