@@ -12,6 +12,7 @@ import markdownToHtml from "../../lib/markdownToHtml";
 import { useState, useEffect, useMemo } from "react";
 import { useForm, usePlugin } from "tinacms";
 import { fetchGraphql } from "../../lib/api";
+import { STRAPI_URL } from "../../components/tina-strapi/tina-strapi-client";
 
 export default function Post({ post: initialPost, preview }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function Post({ post: initialPost, preview }) {
         updateBlogPost(
           input: {
             where: { id: ${values.id} }
-            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""" }
+            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""", date:"${values.date}" }
           }
         ) {
           blogPost {
@@ -48,10 +49,30 @@ export default function Post({ post: initialPost, preview }) {
         component: "text",
       },
       {
+        name: "date",
+        label: "Post Date",
+        component: "date",
+        parse: (val) => {
+          return val.format("YYYY-MM-DD");
+        },
+      },
+      {
+        name: "coverImage.url",
+        label: "Cover Image",
+        component: "image",
+        previewSrc: () => {
+          return STRAPI_URL + post.coverImage.url;
+        },
+        uploadDir: () => {
+          return "/uploads";
+        },
+      },
+      {
         name: "rawMarkdownBody",
         label: "Content",
         component: "markdown",
       },
+      ,
     ],
   };
 
@@ -76,7 +97,7 @@ export default function Post({ post: initialPost, preview }) {
             <article className="mb-32">
               <Head>
                 <title>
-                  {post.title} {preview}| Next.js Blog Example with {CMS_NAME}
+                  {post.title}| Next.js Blog Example with {CMS_NAME}
                 </title>
                 <meta
                   property="og:image"
@@ -95,6 +116,7 @@ export default function Post({ post: initialPost, preview }) {
                 date={post.date}
                 author={post.author}
               />
+              {post.coverImage.url}
               <PostBody content={htmlContent} />
             </article>
           </>
@@ -125,6 +147,7 @@ export async function getStaticProps({ params, preview, previewData }) {
   `);
 
   const post = queryResponse.data.blogPosts[0];
+  console.log(post);
   const content = await markdownToHtml(post.content || "");
 
   if (preview) {
