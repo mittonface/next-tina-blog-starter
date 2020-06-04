@@ -14,6 +14,46 @@ import { useForm, usePlugin } from "tinacms";
 import { fetchGraphql } from "../../lib/api";
 import { STRAPI_URL } from "../../components/tina-strapi/tina-strapi-client";
 import get from "lodash.get";
+import { type } from "os";
+
+export const ContentBlock = {
+  label: "Content",
+  name: "content",
+  key: "content-block",
+  defaultItem: {
+    content: "",
+  },
+  fields: [{ name: "content", label: "Content", component: "markdown" }],
+};
+
+export const ImageBlock = {
+  label: "Image",
+  name: "image",
+  key: "image-block",
+  defaultItem: {
+    coverImage: { url: "" },
+  },
+  fields: [
+    {
+      name: "coverImage",
+      label: "Cover Image",
+      component: "image",
+      previewSrc: (formValues, { input }) => {
+        return STRAPI_URL + get(formValues, input.name + ".url");
+      },
+      uploadDir: () => {
+        return `/uploads/`;
+      },
+      parse: (filename) => {
+        const filenameParts = filename.split("?");
+        return { url: `/uploads/${filenameParts[0]}`, id: filenameParts[1] };
+      },
+      format: (coverImage) => {
+        return coverImage.url;
+      },
+    },
+  ],
+};
 
 export default function Post({ post: initialPost, preview }) {
   const router = useRouter();
@@ -27,11 +67,17 @@ export default function Post({ post: initialPost, preview }) {
     initialValues: initialPost,
     onSubmit: async (values) => {
       const saveMutation = `
-      mutation {
+      mutation UpdateBlogPost(
+        $id: ID!
+        $title: String
+        $content: String
+        $date: Date
+        $blocks: JSON
+      ) {
         updateBlogPost(
           input: {
-            where: { id: ${values.id} },
-            data: { title: "${values.title}", content: """${values.rawMarkdownBody}""", date:"${values.date}", coverImage: "${values.coverImage.id}"}
+            where: { id: $id }
+            data: { title: $title, content: $content, date: $date, blocks: $blocks }
           }
         ) {
           blogPost {
@@ -41,7 +87,13 @@ export default function Post({ post: initialPost, preview }) {
       }
       `;
 
-      const response = await fetchGraphql(saveMutation);
+      const response = await fetchGraphql(saveMutation, {
+        id: values.id,
+        title: values.title,
+        content: values.rawMarkdownBody,
+        date: values.date,
+        blocks: values.blocks,
+      });
     },
     fields: [
       {
@@ -57,23 +109,12 @@ export default function Post({ post: initialPost, preview }) {
           return val.format("YYYY-MM-DD");
         },
       },
+
       {
-        name: "coverImage",
-        label: "Cover Image",
-        component: "image",
-        previewSrc: (formValues, { input }) => {
-          return STRAPI_URL + get(formValues, input.name + ".url");
-        },
-        uploadDir: () => {
-          return `/uploads/`;
-        },
-        parse: (filename) => {
-          const filenameParts = filename.split("?");
-          return { url: `/uploads/${filenameParts[0]}`, id: filenameParts[1] };
-        },
-        format: (coverImage) => {
-          return coverImage.url;
-        },
+        label: "Page Sections",
+        name: "blocks.blocks",
+        component: "blocks",
+        templates: { ContentBlock, ImageBlock },
       },
       {
         name: "rawMarkdownBody",
@@ -93,6 +134,7 @@ export default function Post({ post: initialPost, preview }) {
     if (initialContent == post.rawMarkdownBody) return;
     markdownToHtml(post.rawMarkdownBody).then(setHtmlContent);
   }, [post.rawMarkdownBody]);
+  let blocks = post.blocks.blocks;
 
   return (
     <Layout preview={preview}>
@@ -107,19 +149,27 @@ export default function Post({ post: initialPost, preview }) {
                 <title>
                   {post.title}| Next.js Blog Example with {CMS_NAME}
                 </title>
-                <meta
-                  property="og:image"
-                  content={STRAPI_URL + post.coverImage.url}
-                />
               </Head>
-              <PostHeader
-                title={post.title}
-                coverImage={STRAPI_URL + post.coverImage.url}
-                date={post.date}
-                author={post.author}
-              />
-              {post.coverImage.url}
-              <PostBody content={htmlContent} />
+              {blocks &&
+                blocks.map(({ _template, ...data }) => {
+                  switch (_template) {
+                    case "ImageBlock":
+                      return (
+                        <PostHeader
+                          title={post.title}
+                          coverImage={STRAPI_URL + data.coverImage.url}
+                          date={post.date}
+                          author={post.author}
+                        />
+                      );
+
+                    case "ContentBlock":
+                      return <PostBody content={data.content} />;
+
+                    default:
+                      return true;
+                  }
+                })}
             </article>
           </>
         )}
@@ -134,6 +184,7 @@ export async function getStaticProps({ params, preview, previewData }) {
     blogPosts(where: {slug: "${params.slug}"}) {
       id
       title
+      blocks
       coverImage{
         id
         url
@@ -150,7 +201,6 @@ export async function getStaticProps({ params, preview, previewData }) {
   `);
 
   const post = queryResponse.data.blogPosts[0];
-  console.log(post);
   const content = await markdownToHtml(post.content || "");
 
   if (preview) {

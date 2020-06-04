@@ -2,7 +2,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 export const STRAPI_JWT = "tina_strapi_jwt";
-export const STRAPI_URL = "http://ec2-3-80-4-78.compute-1.amazonaws.com:1337";
+export const STRAPI_URL =
+  "http://ec2-3-80-231-194.compute-1.amazonaws.com:1337";
 
 export class TinaStrapiClient {
   authenticate() {
