@@ -7,6 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@tinacms/webpack-helpers": "^0.1.0",
     "axios": "^0.19.2",
     "classnames": "2.2.6",
     "date-fns": "2.10.0",
@@ -16,6 +17,8 @@
     "next": "latest",
     "react": "^16.13.0",
     "react-dom": "^16.13.0",
+    "react-tinacms-editor": "^0.7.2",
+    "react-tinacms-inline": "^0.6.0",
     "remark": "11.0.2",
     "remark-html": "10.0.0",
     "styled-components": "^5.1.0",

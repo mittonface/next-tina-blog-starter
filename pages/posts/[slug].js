@@ -15,44 +15,70 @@ import { fetchGraphql } from "../../lib/api";
 import { STRAPI_URL } from "../../components/tina-strapi/tina-strapi-client";
 import get from "lodash.get";
 import { type } from "os";
+import { Button as TinaButton } from "@tinacms/styles";
+import {
+  InlineForm,
+  InlineField,
+  InlineText,
+  useInlineForm,
+  InlineBlocks,
+  BlocksControls,
+  InlineTextarea,
+  InlineImage,
+} from "react-tinacms-inline";
 
-export const ContentBlock = {
+export function Content(props) {
+  return (
+    <BlocksControls index={props.index}>
+      <InlineTextarea name="content" />
+    </BlocksControls>
+  );
+}
+
+export function Image(props) {
+  return (
+    <BlocksControls index={props.index}>
+      <InlineImage
+        name="coverImage.url"
+        previewSrc={(formValues) => {
+          return STRAPI_URL + get(formValues, "coverImage.url");
+        }}
+        uploadDir={() => {
+          return `/uploads/`;
+        }}
+        parse={(filename) => {
+          return `/uploads/${filename}`;
+        }}
+        format={(coverImage) => {
+          return "ME OH MY/" + coverImage.url + "hi";
+        }}
+      >
+        {() => {
+          console.log(props);
+          return <img src={STRAPI_URL + props.data.coverImage.url} />;
+        }}
+      </InlineImage>
+    </BlocksControls>
+  );
+}
+export const content_template = {
   label: "Content",
   name: "content",
   key: "content-block",
   defaultItem: {
     content: "",
   },
-  fields: [{ name: "content", label: "Content", component: "markdown" }],
+  fields: [],
 };
 
-export const ImageBlock = {
+export const image_template = {
   label: "Image",
   name: "image",
   key: "image-block",
   defaultItem: {
     coverImage: { url: "" },
   },
-  fields: [
-    {
-      name: "coverImage",
-      label: "Cover Image",
-      component: "image",
-      previewSrc: (formValues, { input }) => {
-        return STRAPI_URL + get(formValues, input.name + ".url");
-      },
-      uploadDir: () => {
-        return `/uploads/`;
-      },
-      parse: (filename) => {
-        const filenameParts = filename.split("?");
-        return { url: `/uploads/${filenameParts[0]}`, id: filenameParts[1] };
-      },
-      format: (coverImage) => {
-        return coverImage.url;
-      },
-    },
-  ],
+  fields: [],
 };
 
 export default function Post({ post: initialPost, preview }) {
@@ -110,12 +136,12 @@ export default function Post({ post: initialPost, preview }) {
         },
       },
 
-      {
-        label: "Page Sections",
-        name: "blocks.blocks",
-        component: "blocks",
-        templates: { ContentBlock, ImageBlock },
-      },
+      // {
+      //   label: "Page Sections",
+      //   name: "blocks.blocks",
+      //   component: "blocks",
+      //   templates: { ContentBlock, ImageBlock },
+      // },
       {
         name: "rawMarkdownBody",
         label: "Content",
@@ -150,31 +176,43 @@ export default function Post({ post: initialPost, preview }) {
                   {post.title}| Next.js Blog Example with {CMS_NAME}
                 </title>
               </Head>
-              {blocks &&
-                blocks.map(({ _template, ...data }) => {
-                  switch (_template) {
-                    case "ImageBlock":
-                      return (
-                        <PostHeader
-                          title={post.title}
-                          coverImage={STRAPI_URL + data.coverImage.url}
-                          date={post.date}
-                          author={post.author}
-                        />
-                      );
-
-                    case "ContentBlock":
-                      return <PostBody content={data.content} />;
-
-                    default:
-                      return true;
-                  }
-                })}
+              <InlineForm form={form}>
+                <EditToggle />
+                <PostTitle>
+                  <InlineText name="title" />
+                </PostTitle>
+                <InlineBlocks name="blocks.blocks" blocks={PAGE_BLOCKS} />
+              </InlineForm>
             </article>
           </>
         )}
       </Container>
     </Layout>
+  );
+}
+const PAGE_BLOCKS = {
+  content: {
+    Component: Content,
+    template: content_template,
+  },
+  image: {
+    Component: Image,
+    template: image_template,
+  },
+};
+export function EditToggle() {
+  // Access 'edit mode' controls via `useInlineForm` hook
+  const { status, deactivate, activate } = useInlineForm();
+
+  return (
+    <TinaButton
+      primary
+      onClick={() => {
+        status === "active" ? deactivate() : activate();
+      }}
+    >
+      {status === "active" ? "Preview" : "Edit"}
+    </TinaButton>
   );
 }
 

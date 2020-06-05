@@ -8,14 +8,12 @@ export class StrapiMediaStore implements MediaStore {
   async persist(files: MediaUploadOptions[]): Promise<Media[]> {
     const uploaded: Media[] = [];
 
-    // TODO: I think we need a way to expose arbitrary information from this persistance to the forms.
     for (const { file } of files) {
       const upload = await uploadFile(file);
       console.log(upload);
       uploaded.push({
         directory: "/uploads",
-        filename:
-          upload.data[0].hash + upload.data[0].ext + `?${upload.data[0].id}`, // TODO: 🤢
+        filename: upload.data[0].hash + upload.data[0].ext,
       });
     }
 
