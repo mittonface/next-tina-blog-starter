@@ -54,7 +54,6 @@ export function Image(props) {
         }}
       >
         {() => {
-          console.log(props);
           return <img src={STRAPI_URL + props.data.coverImage.url} />;
         }}
       </InlineImage>
@@ -66,7 +65,8 @@ export const content_template = {
   name: "content",
   key: "content-block",
   defaultItem: {
-    content: "",
+    content: "I'm a really cool block of content",
+    _template: "content",
   },
   fields: [],
 };
@@ -77,10 +77,24 @@ export const image_template = {
   key: "image-block",
   defaultItem: {
     coverImage: { url: "" },
+    _template: "image",
   },
   fields: [],
 };
 
+export function SaveButton() {
+  const { form } = useInlineForm();
+
+  /*
+   ** If there are no changes
+   ** to save, return early
+   */
+  if (form.finalForm.getState().pristine) {
+    return null;
+  }
+
+  return <TinaButton onClick={form.submit}>Save</TinaButton>;
+}
 export default function Post({ post: initialPost, preview }) {
   const router = useRouter();
   if (!router.isFallback && !initialPost?.slug) {
@@ -178,6 +192,8 @@ export default function Post({ post: initialPost, preview }) {
               </Head>
               <InlineForm form={form}>
                 <EditToggle />
+                <SaveButton />
+
                 <PostTitle>
                   <InlineText name="title" />
                 </PostTitle>
